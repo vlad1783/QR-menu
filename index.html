@@ -845,30 +845,96 @@
         </div>
     </div>
 
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+
+<body>
+    <button id="home-btn">← На главную</button>
+
+    <div id="app">
+        <div class="category-tabs" id="category-tabs"></div>
+        <div class="menu-items" id="menu-items"></div>
+
+        <div id="productModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <h3 id="modalItemName"></h3>
+                <img id="modalItemImage" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWVlZWVlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgYWxpZ25tZW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM5OTkiPk5vIGltYWdlPC90ZXh0Pjwvc3ZnPg==" alt="" />
+                <p id="modalItemDescription"></p>
+                <div class="size-options" id="sizeOptions"></div>
+                <p id="modalItemPrice"></p>
+                <p class="modal-error" id="modalError">Пожалуйста, выберите размер</p>
+
+                <div class="modal-quantity-control hidden" id="modalQuantityControl">
+                    <button class="modal-quantity-btn" id="modalDecreaseBtn">-</button>
+                    <span class="modal-quantity-value" id="modalQuantityValue">1</span>
+                    <button class="modal-quantity-btn" id="modalIncreaseBtn">+</button>
+                </div>
+
+                <div class="modal-add-btn-container" id="modalAddBtnContainer">
+                    <button class="add-to-cart-btn" id="modalAddBtn">Добавить</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="cartModal" class="modal">
+            <div class="cart-modal-content">
+                <span class="close" onclick="closeCartModal()">&times;</span>
+                <h2 style="text-align: center; margin-bottom: 20px;">Ваша корзина</h2>
+                <div id="cartItemsContainer"></div>
+                <div class="cart-total-container">
+                    <span>Итого:</span>
+                    <span id="cartModalTotal">0 ₽</span>
+                </div>
+                <button class="checkout-btn" style="width: 100%; margin-top: 20px;" onclick="openCheckoutModal()">Оформить заказ</button>
+            </div>
+        </div>
+
+        <div id="checkoutModal" class="checkout-modal">
+            <div class="checkout-modal-content">
+                <span class="close" onclick="closeCheckoutModal()">&times;</span>
+                <h2>Оформление заказа</h2>
+                <input type="tel" class="phone-input" id="phone-input" placeholder="+7 (999) 999-9999" />
+                <button class="confirm-order-btn" id="confirm-order-btn">Подтвердить заказ</button>
+            </div>
+        </div>
+
+        <div id="notificationModal" class="notification-modal">
+            <div class="notification-content">
+                <h3 id="notification-title">Уведомление</h3>
+                <p id="notification-text"></p>
+                <button class="notification-close" onclick="closeNotificationModal()">OK</button>
+            </div>
+        </div>
+
+        <div class="cart-footer">
+            <div>
+                <span class="cart-total">Итого: 0 ₽</span>
+                <div id="cart-count">0 товаров</div>
+            </div>
+            <button class="checkout-btn" onclick="openCartModal()">
+                Оформить
+                <div class="cart-icon" id="cart-icon">0</div>
+            </button>
+        </div>
+    </div>
+
     <script>
-        // Конфигурация API и идентификаторы
-        const config = {
-            API_LOGIN: '86f420add560460faa1fdca267619874',
-            ORG_ID: 'db1e4a84-7ebf-4925-a362-50a8e0c5ba83',
-            TERMINAL_ID: '490fd9eb-48d2-41ca-b2cb-87609373c471',
-            EXTERNAL_MENU_ID: '51957'
-        };
-
-        // Адрес прокси-сервера для запросов API
-        const PROXY_URL = 'http://localhost:3001';
-
+        // Базовый URL API (замените на ваш реальный адрес сервера)
+        const API_BASE_URL = 'http://109.68.212.146:3000';
+        
         // Глобальное состояние приложения
         const state = {
-            token: null, // Токен авторизации
-            menu: [], // Меню с категориями и товарами
-            cart: [], // Корзина с выбранными товарами
-            currentCategory: null, // Текущая выбранная категория
-            selectedItem: null, // Текущий выбранный товар в модальном окне
-            selectedSize: null, // Текущий выбранный размер товара
-            modalQuantity: 1 // Количество выбранного товара в модальном окне
+            menu: [],
+            cart: [],
+            currentCategory: null,
+            selectedItem: null,
+            selectedSize: null,
+            modalQuantity: 1
         };
 
-        // Ссылки на DOM-элементы для удобства
+        // Ссылки на DOM-элементы
         const elements = {
             categoryTabs: document.getElementById('category-tabs'),
             menuItems: document.getElementById('menu-items'),
@@ -902,15 +968,12 @@
 
         // Формируем окончательный комментарий
         function generateComment() {
-            const digits = Math.floor(1000 + Math.random() * 9000).toString(); // Генерируем число от 1000 до 9999
-
+            const digits = Math.floor(1000 + Math.random() * 9000).toString();
             const englishLetters = 'QRTPASDFGHJKLZXVBNM';
             const letter1 = englishLetters.charAt(Math.floor(Math.random() * englishLetters.length));
             const letter2 = englishLetters.charAt(Math.floor(Math.random() * englishLetters.length));
-           
             return `Заказ через QR-menu: №${digits}${letter1}${letter2}`;
         }
-
 
         // Обработчик клика по фону модального окна для закрытия
         window.addEventListener('click', (event) => {
@@ -924,7 +987,7 @@
 
         // Функция отрисовки вкладок категорий меню
         function renderCategories() {
-            elements.categoryTabs.innerHTML = ''; // Очистить контейнер
+            elements.categoryTabs.innerHTML = '';
 
             state.menu.forEach(category => {
                 const tab = document.createElement('div');
@@ -933,14 +996,14 @@
                     <img src="${category.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWVlZWVlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgYWxpZ25tZW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM5OTkiPk5vIGltYWdlPC90ZXh0Pjwvc3ZnPg=='}" alt="${category.name}" />
                     <span>${category.name}</span>
                 `;
-                tab.onclick = () => showCategory(category.id); // При клике показать товары категории
+                tab.onclick = () => showCategory(category.id);
                 elements.categoryTabs.appendChild(tab);
             });
         }
 
         // Функция отрисовки товаров выбранной категории
         function renderMenuItems(category) {
-            elements.menuItems.innerHTML = ''; // Очистить контейнер с товарами
+            elements.menuItems.innerHTML = '';
 
             const categoryData = state.menu.find(c => c.id === category.id);
 
@@ -953,11 +1016,9 @@
                 const itemEl = document.createElement('div');
                 itemEl.className = 'menu-item';
 
-                // Поиск товара в корзине, чтобы отобразить количество
                 const cartItem = state.cart.find(cartItem => cartItem.id === item.id || cartItem.id.startsWith(item.id + '_'));
                 const hasQuantity = cartItem && cartItem.quantity > 0;
 
-                // Определяем цену для отображения
                 let displayPrice = 'Цена не указана';
                 if (item.price) {
                     displayPrice = item.price + ' ₽';
@@ -965,10 +1026,9 @@
                     displayPrice = 'от ' + item.sizes[0].price + ' ₽';
                 }
 
-                // Формируем HTML карточки товара
                 itemEl.innerHTML = `
                     <div class="item-image-container">
-                        <img class="item-image" src="${item.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWVlZWVlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgYWxpZ25tZW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM5OTkiPk5vIGltYWdlPC90ZXh0Pjwvc3ZnPg=='}" alt="${item.name}" onclick="openModal('${item.id}')" />
+                        <img class="item-image" src="${item.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25eIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWVlZWVlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgYWxpZ25tZW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM5OTkiPk5vIGltYWdlPC90ZXh0Pjwvc3ZnPg=='}" alt="${item.name}" onclick="openModal('${item.id}')" />
                     </div>
                     <div class="item-info" onclick="openModal('${item.id}')">
                         <h3 class="item-name">${item.name}</h3>
@@ -991,14 +1051,12 @@
 
         // Обработчик клика по кнопке "Добавить" в карточке товара
         function handleAddClick(itemId, event) {
-            event.stopPropagation(); // Предотвращаем всплытие события
+            event.stopPropagation();
             const item = findItemById(itemId);
 
-            // Если у товара несколько размеров, открываем модальное окно выбора
             if (item.hasSizes && item.sizes.length > 1) {
                 openModal(itemId);
             } else {
-                // Иначе добавляем товар сразу в корзину
                 addItemToCart(itemId);
                 updateCartItemDisplay(itemId);
             }
@@ -1038,7 +1096,6 @@
                 updateCart();
                 updateCartItemDisplay(itemId);
             } else {
-                // Если товара нет в корзине, добавляем его
                 const item = findItemById(itemId);
                 if (item) {
                     addItemToCart(itemId);
@@ -1057,7 +1114,6 @@
                 if (cartItem.quantity > 1) {
                     cartItem.quantity -= 1;
                 } else {
-                    // Удаляем товар из корзины, если количество стало 0
                     const index = state.cart.findIndex(item =>
                         item.id === itemId || item.id.startsWith(itemId + '_')
                     );
@@ -1093,18 +1149,16 @@
             }
 
             state.selectedItem = item;
-            state.selectedSize = null; // Сбрасываем выбранный размер
-            state.modalQuantity = 1; // Сбрасываем количество
+            state.selectedSize = null;
+            state.modalQuantity = 1;
 
             elements.modalItemName.textContent = item.name;
 
-            // Если у товара есть размеры и их больше одного, показываем выбор
             if (item.hasSizes && item.sizes.length > 1) {
-                elements.sizeOptions.innerHTML = ''; // Очищаем контейнер с размерами
+                elements.sizeOptions.innerHTML = '';
                 elements.modalItemPrice.textContent = 'Выберите размер';
                 elements.modalError.style.display = 'none';
 
-                // Создаем элементы для каждого размера
                 item.sizes.forEach(size => {
                     const sizeOption = document.createElement('div');
                     sizeOption.className = 'size-option';
@@ -1112,75 +1166,55 @@
                         <span class="size-name">${size.name}</span>
                         <span class="size-price">${size.price} ₽</span>
                     `;
-                    // При клике вызываем функцию выбора размера
                     sizeOption.onclick = () => selectSize(size);
                     elements.sizeOptions.appendChild(sizeOption);
                 });
 
-                // Устанавливаем картинку по умолчанию из первого размера, если есть imageUrl
                 if (item.sizes[0].imageUrl) {
                     elements.modalItemImage.src = item.sizes[0].imageUrl;
                 } else {
-                    // Если нет, используем общую картинку товара
                     elements.modalItemImage.src = item.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWVlZWVlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgYWxpZ25tZW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM5OTkiPk5vIGltYWdlPC90ZXh0Pjwvc3ZnPg==';
                 }
 
                 elements.sizeOptions.style.display = 'block';
             } else {
-                // Если размеров нет или только один размер
                 elements.sizeOptions.style.display = 'none';
 
                 if (item.hasSizes && item.sizes.length === 1) {
-                    // Автоматически выбираем единственный размер
                     state.selectedSize = item.sizes[0];
                     elements.modalItemPrice.textContent = `${item.sizes[0].price} ₽`;
 
-                    // Устанавливаем картинку с единственного размера, если есть
                     if (item.sizes[0].imageUrl) {
                         elements.modalItemImage.src = item.sizes[0].imageUrl;
                     } else {
                         elements.modalItemImage.src = item.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWVlZWVlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgYWxpZ25tZW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM5OTkiPk5vIGltYWdlPC90ZXh0Pjwvc3ZnPg==';
                     }
                 } else {
-                    // Для товаров без размеров используем основную цену и картинку
                     elements.modalItemPrice.textContent = `${item.price} ₽`;
                     elements.modalItemImage.src = item.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWVlZWVlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgYWxpZ25tZW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM5OTkiPk5vIGltYWdlPC90ZXh0Pjwvc3ZnPg==';
                 }
             }
 
-            // Обновляем отображение количества и кнопок в модальном окне
             updateModalDisplay();
-
-            // Показываем модальное окно
             elements.productModal.style.display = 'flex';
         }
 
         // Функция выбора размера в модальном окне
         function selectSize(size) {
-            state.selectedSize = size; // Сохраняем выбранный размер
-
-            // Обновляем цену на выбранный размер
+            state.selectedSize = size;
             elements.modalItemPrice.textContent = `${size.price} ₽`;
 
-            // Обновляем картинку на изображение выбранного размера, если есть
             if (size.imageUrl) {
                 elements.modalItemImage.src = size.imageUrl;
-                console.log(size.imageUrl)
             } else if (state.selectedItem) {
-                // Если у размера нет картинки, используем общую картинку товара
                 elements.modalItemImage.src = state.selectedItem.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWVlZWVlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgYWxpZ25tZW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM5OTkiPk5vIGltYWdlPC90ZXh0Pjwvc3ZnPg==';
             }
 
-            // Убираем выделение у всех размеров
             const sizeOptions = document.querySelectorAll('.size-option');
             sizeOptions.forEach(option => {
                 option.classList.remove('selected');
             });
-
-            // Добавляем выделение к выбранному размеру
-            // event.target.closest используется, чтобы найти элемент size-option по клику
-            // Но event не передан в функцию, исправим ниже
-            // Для корректной работы передадим event в onclick
+            event.target.closest('.size-option').classList.add('selected');
         }
 
         // Закрытие модального окна товара
@@ -1203,12 +1237,10 @@
             const cartItem = state.cart.find(item => item.id === cartItemId);
 
             if (cartItem) {
-                // Если товар уже в корзине, показываем контрол количества
                 elements.modalQuantityValue.textContent = cartItem.quantity;
                 elements.modalQuantityControl.classList.remove('hidden');
                 elements.modalAddBtnContainer.classList.add('hidden');
             } else {
-                // Если товара нет в корзине, показываем кнопку "Добавить"
                 elements.modalQuantityValue.textContent = state.modalQuantity;
                 elements.modalQuantityControl.classList.add('hidden');
                 elements.modalAddBtnContainer.classList.remove('hidden');
@@ -1220,22 +1252,17 @@
             const item = findItemById(itemId);
             if (!item) return;
 
-            // Переменные для идентификатора и цены в корзине
             let price = item.price;
             let cartItemId = item.id;
             let name = item.name;
 
             if (item.hasSizes) {
-                // Если у товара есть размеры, выбираем выбранный размер
                 if (item.sizes.length === 1) {
-                    // Если размер один, выбираем его автоматически
                     state.selectedSize = item.sizes[0];
                 }
 
-                // Если размер не выбран, показываем ошибку
                 if (!state.selectedSize) {
                     elements.modalError.style.display = 'block';
-                    // Добавляем анимацию мерцания к цене
                     elements.modalItemPrice.classList.add('blink');
                     setTimeout(() => {
                         elements.modalItemPrice.classList.remove('blink');
@@ -1247,14 +1274,12 @@
                 name = `${item.name} (${state.selectedSize.name})`;
             }
 
-            // Проверяем, есть ли товар уже в корзине
             const existingItem = state.cart.find(item => item.id === cartItemId);
             const quantity = existingItem ? existingItem.quantity + 1 : 1;
 
             if (existingItem) {
                 existingItem.quantity = quantity;
             } else {
-                // Добавляем новый товар в корзину
                 state.cart.push({
                     id: cartItemId,
                     name: name,
@@ -1265,8 +1290,6 @@
             }
 
             updateCart();
-
-            // Обновляем отображение в модальном окне и карточке товара
             updateModalDisplay();
             updateCartItemDisplay(itemId);
         }
@@ -1298,78 +1321,6 @@
             return five;
         }
 
-        // Обработка данных меню из API
-        function processMenuData(data) {
-            const categories = [];
-
-            data.itemCategories.forEach(category => {
-                const newCategory = {
-                    id: category.id,
-                    name: category.name,
-                    items: [],
-                    imageUrl: category.buttonImageUrl
-                };
-
-                category.items?.forEach(item => {
-                    if (item.itemSizes && item.itemSizes.length > 0) {
-                        // Товар с размерами
-                        const product = {
-                            id: item.itemId,
-                            name: item.name,
-                            description: item.description || '',
-                            hasSizes: true,
-                            sizes: item.itemSizes.map(size => {
-                                const priceInfo = size.prices.find(p =>
-                                    p.organizationId === config.ORG_ID
-                                );
-  
-                                return {
-                                    id: size.sizeId,
-                                    name: size.sizeName,
-                                    price: priceInfo?.price || 0,
-                                    sku: size.sku,
-                                    imageUrl: size.buttonImageUrl || null // Добавляем imageUrl для каждого размера
-                                };
-                            }).filter(size => size.price > 0),
-                            imageUrl: item.itemSizes[0]?.buttonImageUrl || null // Общая картинка товара
-                        };
-
-                        if (product.sizes.length > 0) {
-                            newCategory.items.push(product);
-                        }
-                    } else {
-                        // Товар без размеров
-                        const priceInfo = item.itemSizes?.[0]?.prices?.find(p =>
-                            p.organizationId === config.ORG_ID
-                        );
-
-                        if (priceInfo) {
-                            newCategory.items.push({
-                                id: item.itemId,
-                                name: item.name,
-                                description: item.description || '',
-                                price: priceInfo.price,
-                                sku: item.sku,
-                                hasSizes: false,
-                                imageUrl: item.itemSizes[0]?.buttonImageUrl || null
-                            });
-                        }
-                    }
-                });
-
-                //Отладка одной категории для понимания структуры
-                if ( newCategory.id == '00a02c9b-7c48-40f9-827b-7468133b563d') {
-                    console.log(newCategory)
-                };        
-
-                if (newCategory.items.length > 0) {
-                    categories.push(newCategory);
-                }
-            });
-
-            return categories;
-        }
-
         // Поиск товара по ID в меню
         function findItemById(itemId) {
             for (const category of state.menu) {
@@ -1382,26 +1333,13 @@
         // Загрузка меню с сервера
         async function loadMenu() {
             try {
-                const response = await fetch(`${PROXY_URL}/menu/by_id`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${state.token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        organizationIds: [config.ORG_ID],
-                        externalMenuId: config.EXTERNAL_MENU_ID
-                    })
-                });
-
+                const response = await fetch(`${API_BASE_URL}/api/menu`);
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('Ошибка загрузки меню по ID:', errorText);
-                    throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+                    console.error('Ошибка загрузки меню:', errorText);
+                    return null;
                 }
-
-                const data = await response.json();
-                return processMenuData(data);
+                return await response.json();
             } catch (error) {
                 console.error('Ошибка загрузки меню:', error);
                 return null;
@@ -1410,7 +1348,7 @@
 
         // Показ товаров выбранной категории
         function showCategory(categoryId) {
-            window.scrollTo(0, 0); // Скролл наверх
+            window.scrollTo(0, 0);
 
             state.currentCategory = categoryId;
 
@@ -1506,7 +1444,6 @@
                 updateCart();
                 renderCartItems();
 
-                // Обновляем отображение товаров в категории
                 if (state.currentCategory) {
                     renderMenuItems(state.menu.find(c => c.id === state.currentCategory));
                 }
@@ -1521,117 +1458,50 @@
                 updateCart();
                 renderCartItems();
 
-                // Обновляем отображение товаров в категории
                 if (state.currentCategory) {
                     renderMenuItems(state.menu.find(c => c.id === state.currentCategory));
                 }
             }
         }
 
-        // Отправка заказа на сервер
+        // Отправка заказа
         async function submitOrder(phone) {
             try {
-                // Форматируем номер телефона, убираем все кроме цифр
-                 const formattedPhone = phone.replace(/[^\d+]/g, '');
-                // Проверяем корректность номера
-                if (!/^(\+7|7|8)\d{10}$/.test(formattedPhone)) {
-                    openNotificationModal('Ошибка', 'Введите корректный номер телефона (+7XXXXXXXXXX)');
-                    return false;
-                }
-
-                // Формируем структуру заказа
-                const order = {
-                    sourceKey: "sm1",
-                    phone: formattedPhone,
-                    orderTypeId: "5b1508f9-fe5b-d6af-cb8d-043af587d5c2",
-                    completeBefore: null,
-                    comment: generateComment(),
-                    items: state.cart.map(item => {
-                        console.log(item.id); // Проверяем значение item.id
-                        return {
-                            productId: item.id.split('_')[0], // Убираем _null, если он есть
-                            type: "Product",
-                            amount: item.quantity,
-                        };
-                    }),
-                    payments: [],
-                };
-
-                const requestBody = {
-                    organizationId: config.ORG_ID,
-                    terminalGroupId: config.TERMINAL_ID,
-                    createOrderSettings: {
-                        transportToFrontTimeout: 0,
-                        checkStopList: false
-                    },
-                    order: order
-                };
-
-
-                // Отправка запроса на создание заказа
-                const response = await fetch(`${PROXY_URL}/deliveries/create`, {
+                const response = await fetch(`${API_BASE_URL}/api/order`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${state.token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone: phone,
+                        cart: state.cart,
+                        comment: generateComment()
+                    })
                 });
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('Ошибка создания заказа:', errorText);
-                    openNotificationModal('Ошибка', 'Не удалось отправить заказ');
+                    console.error('Ошибка оформления заказа:', errorText);
                     return false;
                 }
 
-                const responseData = await response.json();
-                openNotificationModal('Успешно', `Заказ успешно оформлен!`);
-                state.cart = []; // Очищаем корзину после успешного заказа
-                updateCart();
-                return true;
+                const data = await response.json();
+                if (data.success) {
+                    openNotificationModal('Успешно', 'Заказ успешно оформлен!');
+                    state.cart = [];
+                    updateCart();
+                    return true;
+                } else {
+                    openNotificationModal('Ошибка', 'Не удалось оформить заказ');
+                    return false;
+                }
             } catch (error) {
-                console.error('Ошибка создания заказа:', error);
+                console.error('Ошибка оформления заказа:', error);
                 openNotificationModal('Ошибка', 'Не удалось отправить заказ');
                 return false;
             }
         }
 
-        // Получение токена авторизации
-        async function getToken() {
-            try {
-                const response = await fetch(`${PROXY_URL}/access_token`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        apiLogin: config.API_LOGIN
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                return data.token;
-            } catch (error) {
-                console.error('Ошибка получения токена:', error);
-                openNotificationModal('Ошибка', 'Не удалось получить доступ к системе');
-                return null;
-            }
-        }
-
         // Инициализация приложения
         async function init() {
-            // Получаем токен
-            state.token = await getToken();
-            if (!state.token) {
-                alert('Ошибка загрузки меню. Пожалуйста, попробуйте позже.');
-                return;
-            }
-
             // Загружаем меню
             state.menu = await loadMenu();
             if (!state.menu || state.menu.length === 0) {
@@ -1667,7 +1537,6 @@
                         if (cartItem.quantity > 1) {
                             cartItem.quantity--;
                         } else {
-                            // Удаляем товар, если количество становится 0
                             const index = state.cart.findIndex(item => item.id === cartItemId);
                             if (index !== -1) {
                                 state.cart.splice(index, 1);
@@ -1676,7 +1545,6 @@
                         updateCart();
                         updateModalDisplay();
 
-                        // Обновляем отображение в категории
                         if (state.currentCategory) {
                             renderMenuItems(state.menu.find(c => c.id === state.currentCategory));
                         }
@@ -1698,7 +1566,6 @@
                         updateCart();
                         updateModalDisplay();
 
-                        // Обновляем отображение в категории
                         if (state.currentCategory) {
                             renderMenuItems(state.menu.find(c => c.id === state.currentCategory));
                         }
@@ -1710,18 +1577,15 @@
             elements.confirmOrderBtn.addEventListener('click', async () => {
                 const phone = elements.phoneInput.value;
                 await submitOrder(phone);
-                closeCheckoutModal();             
+                closeCheckoutModal();
             });
 
-            // Отрисовываем категории при загрузке
+            // Отрисовываем категории
             renderCategories();
         }
 
-        // Запуск инициализации после загрузки DOM
+        // Запуск приложения
         document.addEventListener('DOMContentLoaded', init);
-                
     </script>
 </body>
-
 </html>
-
